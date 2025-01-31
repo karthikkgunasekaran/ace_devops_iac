@@ -15,7 +15,7 @@ pipeline {
             steps {
                 // Checkout the code from the specified repository and branch
                 // Specify your own repository and branch
-                git url: 'https://github.com/your_account/your_repo', branch: 'main'
+                git url: 'https://github.com/karthikkgunasekaran/ace_bitezy', branch: 'main'
             }
         }
         
