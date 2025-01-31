@@ -1,0 +1,127 @@
+---
+- name: Install and configure Jenkins
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Update all packages
+      yum:
+        name: "*"
+        state: latest
+
+    - name: Update repository cache
+      yum:
+        name: "*"
+        state: latest
+        update_cache: yes
+
+    - name: Install Java
+      command: sudo dnf install java-17-amazon-corretto -y
+
+    - name: Add Jenkins repository
+      get_url:
+        url: http://pkg.jenkins-ci.org/redhat/jenkins.repo
+        dest: /etc/yum.repos.d/jenkins.repo
+
+    - name: Import Jenkins repository key
+      rpm_key:
+        state: present
+        key: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+
+    - name: Install Jenkins
+      yum:
+        name: jenkins
+        state: present
+        validate_certs: no
+
+    - name: Start and enable Jenkins service
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes
+      ignore_errors: yes
+
+    - name: Check Jenkins service status
+      command: systemctl status jenkins
+      register: jenkins_status
+      failed_when: jenkins_status.rc != 0
+      ignore_errors: yes
+
+    - name: Debug Jenkins service status
+      debug:
+        var: jenkins_status
+
+    - name: Check Jenkins logs
+      command: journalctl -u jenkins.service
+      register: jenkins_logs
+      when: jenkins_status.rc != 0
+
+    - name: Debug Jenkins logs
+      debug:
+        var: jenkins_logs
+      when: jenkins_status.rc != 0
+
+    - name: Install Nginx
+      yum:
+        name: nginx
+        state: present
+
+    - name: Install Git
+      yum:
+        name: git
+        state: present
+
+    - name: Install Python
+      yum:
+        name: python3
+        state: latest
+
+    - name: Install pip
+      command: python3 -m ensurepip --upgrade
+
+    - name: Check Python version
+      command: python3 --version
+      register: python_version
+
+    - name: Debug Python version
+      debug:
+        var: python_version.stdout
+
+    - name: Check pip version
+      command: pip3 --version
+      register: pip_version
+
+    - name: Debug pip version
+      debug:
+        var: pip_version.stdout
+
+    - name: Configure Nginx for Jenkins HTTP
+      copy:
+        content: |
+          server {
+              listen 80;
+              server_name your_domain;
+
+              location / {
+                  proxy_pass http://localhost:8080;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+          }
+        dest: /etc/nginx/conf.d/jenkins.conf
+
+    - name: Start and enable Nginx service
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+    
+    - name: Retrieve initial admin password
+      command: cat /var/lib/jenkins/secrets/initialAdminPassword
+      register: initial_admin_password
+
+    - name: Debug initial admin password
+      debug:
+        var: initial_admin_password.stdout

@@ -1,0 +1,29 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: Update all packages
+      yum:
+        name: "*"
+        state: latest
+
+    - name: Update repository cache
+      yum:
+        name: "*"
+        state: latest
+        update_cache: yes
+    
+    - name: Install Python
+      yum:
+        name: python3
+        state: latest
+
+    - name: Install Nginx
+      yum:
+        name: nginx
+        state: present
+
+    - name: Start and enable Nginx service
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes

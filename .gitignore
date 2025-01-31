@@ -1,0 +1,12 @@
+#Ignore MacOS hidden files
+.DS_Store
+
+#Ingore Terraform temp
+.terraform/
+*.lock.hcl
+*.tfstate
+*.tfstate.backup
+
+#Ignore credentials
+*.pem
+.env
